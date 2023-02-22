@@ -18,7 +18,7 @@ string ReadLine()
     getline(cin, s);
     return s;
 }
-
+ 
 // считываем целочисл. число
 int ReadLineWithNumber()
 {
