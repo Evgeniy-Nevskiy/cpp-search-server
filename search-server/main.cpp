@@ -18,7 +18,7 @@ string ReadLine()
     getline(cin, s);
     return s;
 }
- 
+
 // считываем целочисл. число
 int ReadLineWithNumber()
 {
@@ -163,6 +163,12 @@ private:
         return query;
     }
 
+    // считает IDF
+    double raschet_idf(const string &word) const
+    {
+        return log(1. * document_count_ / word_to_document_freqs_.at(word).size());
+    }
+
     // по строке запроса находит все пары документов с наличием релевантности
     vector<Document> FindAllDocuments(const Query &query) const
     {
@@ -173,7 +179,7 @@ private:
             {
                 continue;
             }
-            const double idf = log(document_count_ * 1. / word_to_document_freqs_.at(word).size());
+            const double idf = raschet_idf(word);
             for (const auto [document_id, tf] : word_to_document_freqs_.at(word))
             {
                 rel_doc[document_id] += idf * tf;
