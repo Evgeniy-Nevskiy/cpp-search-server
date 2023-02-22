@@ -164,7 +164,7 @@ private:
     }
 
     // считает IDF
-    double raschet_idf(const string &word) const
+    double CalculateIDF(const string &word) const
     {
         return log(1. * document_count_ / word_to_document_freqs_.at(word).size());
     }
@@ -179,7 +179,7 @@ private:
             {
                 continue;
             }
-            const double idf = raschet_idf(word);
+            const double idf = CalculateIDF(word);
             for (const auto [document_id, tf] : word_to_document_freqs_.at(word))
             {
                 rel_doc[document_id] += idf * tf;
