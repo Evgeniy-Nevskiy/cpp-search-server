@@ -458,8 +458,6 @@ void RunTestImpl(Func func, const string &function)
 
 #define RUN_TEST(func) RunTestImpl((func), #func)
 
-// -------- Начало модульных тестов поисковой системы ----------
-
 // Тест проверяет, что поисковая система исключает стоп-слова при добавлении документов
 void TestExcludeStopWordsFromAddedDocumentContent()
 {
@@ -507,32 +505,27 @@ void TestAddDocuments()
 }
 
 // удаляется документ с минус-словом
-void TestMinusWords()
+void TestExcludeMinusWords()
 {
     const int doc_id = 42;
     const string content = "bat in the city"s;
     const vector<int> ratings = {1, 2, 3};
 
-    {
-        SearchServer server;
-        server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
-        // совпадения по bat нет, т.к. city минус-слово
-        ASSERT_HINT(server.FindTopDocuments("bat in the -city"s).empty(), "Minus-words must exclude document"s);
-    }
+    SearchServer server;
+    server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
 
-    {
-        SearchServer server;
-        server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
-        // в данном случае city не минус-слово
-        const auto found_docs = server.FindTopDocuments("cat in the city"s);
-        ASSERT_HINT(found_docs.size() == 1, "There are no minus-words"s);
-        const Document &doc0 = found_docs[0];
-        ASSERT(doc0.id == doc_id);
-    }
+    // совпадения по bat нет, т.к. city минус-слово
+    ASSERT_HINT(server.FindTopDocuments("bat in the -city"s).empty(), "Minus-words must exclude document"s);
+
+    // в данном случае city не минус-слово
+    const auto found_docs = server.FindTopDocuments("cat in the city"s);
+    ASSERT_HINT(found_docs.size() == 1, "There are no minus-words"s);
+    const Document &doc0 = found_docs[0];
+    ASSERT(doc0.id == doc_id);
 }
 
 // проверка матчинга документов
-void TestMatched()
+void TestMatchedDocuments()
 {
     const int doc_id = 42;
     const string content = "cat in the city"s;
@@ -540,23 +533,27 @@ void TestMatched()
 
     {
         SearchServer server;
+        server.SetStopWords("in the"s);
         server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
-        auto [v, ds] = server.MatchDocument("cat in the big city"s, doc_id);
-        // в данном случае city не минус-слово
-        ASSERT_EQUAL(v.size(), 4);
+        const auto [matched_words, status] = server.MatchDocument("cat in the city"s, doc_id);
+        const vector<string> resultat = {"cat"s, "city"s};
+        ASSERT_EQUAL_HINT(resultat, matched_words, "Words is not equal !!!");
     }
 
     {
         SearchServer server;
+        server.SetStopWords("in the"s);
         server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
-        auto [v, ds] = server.MatchDocument("dog in the big -city"s, doc_id);
+        const auto [matched_words, status] = server.MatchDocument("dog in the big -city"s, doc_id);
         // city - минус-слово обнуляет документ
-        ASSERT_HINT(v.empty(), "Minus-words must exclude document"s);
+        const vector<string> resultat = {};
+        ASSERT_EQUAL(resultat, matched_words);
+        ASSERT_HINT(matched_words.empty(), "Minus-words must exclude document"s);
     }
 }
 
 // Проверка сортировки релевантности по убыванию
-void TestSortRelevance()
+void TestSortByRelevance()
 {
     SearchServer server;
     server.AddDocument(42, "cat in the city"s, DocumentStatus::ACTUAL, {1, 2, 3});
@@ -575,23 +572,25 @@ void TestSortRelevance()
 }
 
 // проверка вычисления рейтинга
-void TestRating()
+void TestCalculateRating()
 {
     {
-        const int doc_id_1 = 42;
-        const string content_1 = "bird in the box box box"s;
-        const vector<int> ratings_1 = {1, 2, 3};
-
         SearchServer server;
-        server.AddDocument(doc_id_1, content_1, DocumentStatus::ACTUAL, ratings_1);
-        const auto found_docs = server.FindTopDocuments("bird bat snake"s);
+        const int doc_id = 42;
+        const string content = "bird in the box box box"s;
+        const vector<int> rating = {1, 2, 3};
+        const int average_rtng = round((1 + 2 + 3 * 1.0) / 3.0);
+
+        server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, rating);
+        const auto found_docs = server.FindTopDocuments("box bat snake"s);
         ASSERT(!found_docs.empty());
-        ASSERT_EQUAL(found_docs[0].rating, round((1 + 2 + 3 * 1.0) / 3.0));
+        ASSERT_EQUAL(found_docs.size(), 1u);
+        ASSERT_EQUAL(found_docs[0].rating, average_rtng);
     }
 }
 
 // проверка предиката
-void TestPredicateLambda()
+void TestSearchByPredicateLambda()
 {
     const vector<int> ratings = {1, 2, 3};
     {
@@ -602,12 +601,16 @@ void TestPredicateLambda()
         server.AddDocument(3, "big fox in the forest"s, DocumentStatus::ACTUAL, ratings);
         const auto found_docs = server.FindTopDocuments("cat in the city"s, [](int document_id, DocumentStatus status, int rating)
                                                         { return rating > 0; });
+        // прежде чем проверять элемент контейнера found_docs 
+        // стоит проверить, что нужное количество там есть
+        ASSERT(!found_docs.empty());
+        ASSERT_EQUAL(found_docs.size(), 1u);
         ASSERT_HINT(found_docs[0].id == 1, "Predicate is wrong");
     }
 }
 
 // проверка статуса
-void TestStatus()
+void TestSearchByStatus()
 {
     const int doc_id = 42;
     const string content = "cat in the house"s;
@@ -619,6 +622,7 @@ void TestStatus()
         server.AddDocument(doc_id, content, DocumentStatus::BANNED, ratings);
         const auto found_docs = server.FindTopDocuments("cat bat bird"s, DocumentStatus::BANNED);
         ASSERT(!found_docs.empty());
+        ASSERT_EQUAL(found_docs.size(), 1u);
         ASSERT_EQUAL(found_docs[0].id, doc_id);
     }
 
@@ -645,7 +649,7 @@ void TestStatus()
 }
 
 // проверка вычисления релевантности
-void TestRelevance()
+void TestCalculateRelevance()
 {
     {
         SearchServer server;
@@ -664,13 +668,13 @@ void TestSearchServer()
 {
     RUN_TEST(TestExcludeStopWordsFromAddedDocumentContent);
     RUN_TEST(TestAddDocuments);
-    RUN_TEST(TestMinusWords);
-    RUN_TEST(TestMatched);
-    RUN_TEST(TestSortRelevance);
-    RUN_TEST(TestRating);
-    RUN_TEST(TestPredicateLambda);
-    RUN_TEST(TestStatus);
-    RUN_TEST(TestRelevance);
+    RUN_TEST(TestExcludeMinusWords);
+    RUN_TEST(TestMatchedDocuments);
+    RUN_TEST(TestSortByRelevance);
+    RUN_TEST(TestCalculateRating);
+    RUN_TEST(TestSearchByPredicateLambda);
+    RUN_TEST(TestSearchByStatus);
+    RUN_TEST(TestCalculateRelevance);
 }
 
 // --------- Окончание модульных тестов поисковой системы -----------
