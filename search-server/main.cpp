@@ -117,11 +117,12 @@ public:
     void AddDocument(int document_id, const string &document, DocumentStatus status,
                      const vector<int> &ratings)
     {
-        if (document_id < 0 || documents_.count(document_id) || !IsValidWord(document) || !IsValidQuery(document))
+        if (document_id < 0 || documents_.count(document_id) || !IsValidWord(document))
         {
-            throw invalid_argument("Error! Document contains wrong symbols or ID"s);
+            throw invalid_argument("Document contains wrong symbols or ID"s);
         }
         const vector<string> words = SplitIntoWordsNoStop(document);
+
         const double inv_word_count = 1.0 / words.size();
         for (const string &word : words)
         {
@@ -135,7 +136,9 @@ public:
     vector<Document> FindTopDocuments(const string &raw_query, DocumentPredicate document_predicate) const
     {
         const Query query = ParseQuery(raw_query);
+
         auto matched_documents = FindAllDocuments(query, document_predicate);
+
         sort(matched_documents.begin(), matched_documents.end(),
              [](const Document &lhs, const Document &rhs)
              {
@@ -206,7 +209,7 @@ public:
     {
         if (index < 0 || index > id_.size())
         {
-            throw out_of_range("Error! Out of range"s);
+            throw out_of_range("Out of range"s);
         }
         return id_.at(index);
     }
@@ -239,7 +242,6 @@ private:
         {
             return false;
         }
-        // Проверяем, что запрос состоит из валидных слов, разделённых пробелами и минусами
         for (int i = 0; i < query.size(); ++i)
         {
             if (query[i] == '-' || query[i] == ' ')
@@ -257,7 +259,6 @@ private:
                 return false;
             }
         }
-        // Проверяем, что запрос не состоит только из минус-слов
         size_t minus_words_count = count(query.begin(), query.end(), '-');
         size_t words_count = count_if(query.begin(), query.end(), [](char c)
                                       { return c != '-' && c != ' '; });
@@ -303,25 +304,37 @@ private:
     {
         if (text.empty())
         {
-            throw invalid_argument("Error! Empty query word"s);
+            throw invalid_argument("Empty query word"s);
         }
         bool is_minus = false;
         string word = text;
-        if (text[0] == '-')
-        {
-            is_minus = true;
-            if (text.size() == 1)
-            {
-                throw invalid_argument("Error! Minus sign without query word"s);
-            }
-            word = text.substr(1);
-        }
+
         if (!IsValidWord(word))
         {
-            throw invalid_argument("Error! Invalid query word: "s + text);
+            throw invalid_argument("Query contains special symbols"s);
         }
-        bool is_stop_word = IsStopWord(text);
-        return {text, is_minus, is_stop_word};
+        else if (word.find("--"s) != string::npos)
+        {
+            throw invalid_argument("Query contains double-minus"s);
+        }
+        else if (word.find("- "s) != string::npos)
+        {
+            throw invalid_argument("No word after '-' symbol"s);
+        }
+        else if (word[size(word) - 1] == '-')
+        {
+            throw invalid_argument("No word after '-' symbol"s);
+        }
+        if (word[0] == '-')
+        {
+            is_minus = true;
+            if (word.size() == 1)
+            {
+                throw invalid_argument("Minus sign without query word"s);
+            }
+            word = word.substr(1);
+        }
+        return {word, is_minus, IsStopWord(word)};
     }
 
     struct Query
