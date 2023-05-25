@@ -13,8 +13,6 @@
 #include "string_processing.h"
 #include "log_duration.h"
 
-using namespace std::string_literals;
-
 class SearchServer
 {
 public:
@@ -86,7 +84,7 @@ private:
 template <typename StringContainer>
 SearchServer::SearchServer(const StringContainer &stop_words) : stop_words_(MakeUniqueNonEmptyStrings(stop_words))
 {
-    if (!all_of(stop_words_.begin(), stop_words_.end(), IsValidWord))
+    if (!std::all_of(stop_words_.begin(), stop_words_.end(), IsValidWord))
     {
         throw std::invalid_argument("Some of stop words are invalid"s);
     }
@@ -97,7 +95,7 @@ std::vector<Document> SearchServer::FindTopDocuments(const std::string &raw_quer
 {
     const auto query = ParseQuery(raw_query);
     auto matched_documents = FindAllDocuments(query, document_predicate);
-    sort(matched_documents.begin(), matched_documents.end(),
+    std::sort(matched_documents.begin(), matched_documents.end(),
          [this](const Document &lhs, const Document &rhs)
          {
              if (std::abs(lhs.relevance - rhs.relevance) < EPSILON)

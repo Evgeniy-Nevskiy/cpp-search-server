@@ -3,7 +3,6 @@ using namespace std::string_literals;
 
 void RemoveDuplicates(SearchServer &search_server)
 {
-    // LOG_DURATION_STREAM("Remove duplicates", std::cout);
     std::set<int> id_remove;
     std::map<std::set<std::string>, int> unique_word_plus_id;
     for (const int document_id : search_server)
