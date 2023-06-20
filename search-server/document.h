@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 
-    struct Document
+struct Document
 {
     Document() = default;
     Document(int id, double relevance, int rating)

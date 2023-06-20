@@ -1,5 +1,4 @@
 #pragma once
-
 #include <algorithm>
 #include <vector>
 #include <cassert>
@@ -12,15 +11,20 @@ template <typename IteratorRanges>
 class IteratorRange
 {
 public:
-    explicit IteratorRange(IteratorRanges begin, IteratorRanges end) : begin_(begin), end_(end), size_(distance(begin, end)) {}
+    explicit IteratorRange(IteratorRanges begin, IteratorRanges end) : begin_(begin),
+                                                                       end_(end),
+                                                                       size_(distance(begin, end)) {}
+
     IteratorRanges begin() const
     {
         return begin_;
     }
+
     IteratorRanges end() const
     {
         return end_;
     }
+
     size_t size() const
     {
         return size_;
@@ -43,12 +47,11 @@ std::ostream &operator<<(std::ostream &out, const Document &document)
 template <typename To_Out>
 std::ostream &operator<<(std::ostream &out, const IteratorRange<To_Out> &sheet)
 {
-    auto helper = sheet.begin();
-    while (helper != sheet.end())
+    auto temporary = sheet.begin();
+    while (temporary != sheet.end())
     {
-        out << *helper;
-        // out<< "Test";
-        ++helper;
+        out << *temporary;
+        ++temporary;
     }
     return out;
 }
@@ -59,26 +62,32 @@ class Paginator
 public:
     Paginator(const Paginatorr &result_begin, const Paginatorr &result_end, size_t size_of_sheet)
     {
+
         auto full_size = distance(result_begin, result_end);
-        Paginatorr helper = result_begin;
+        Paginatorr temporary = result_begin;
+
         for (auto i = 0; i < full_size / size_of_sheet; ++i)
         {
-            sheets.push_back(IteratorRange<Paginatorr>(helper, helper + size_of_sheet));
-            helper = helper + size_of_sheet;
+            sheets.push_back(IteratorRange<Paginatorr>(temporary, temporary + size_of_sheet));
+            temporary = temporary + size_of_sheet;
         }
-        if (helper != result_end)
+
+        if (temporary != result_end)
         {
-            sheets.push_back(IteratorRange<Paginatorr>(helper, result_end));
+            sheets.push_back(IteratorRange<Paginatorr>(temporary, result_end));
         }
     }
+
     auto begin() const
     {
         return sheets.begin();
     }
+
     auto end() const
     {
         return sheets.end();
     }
+
     size_t size()
     {
         return sheets.size();
