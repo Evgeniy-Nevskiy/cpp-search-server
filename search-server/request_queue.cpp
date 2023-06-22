@@ -3,10 +3,13 @@
 std::vector<Document> RequestQueue::AddFindRequest(std::string_view raw_query,
                                                    DocumentStatus status)
 {
-    return AddFindRequest(raw_query, [&status](int document_id,
-                                               DocumentStatus document_status,
-                                               int rating)
-                          { return document_status == status; });
+    return AddFindRequest(raw_query,
+                          [&status](int document_id,
+                                    DocumentStatus document_status,
+                                    int rating)
+                          {
+                              return document_status == status;
+                          });
 }
 
 std::vector<Document> RequestQueue::AddFindRequest(std::string_view raw_query)
@@ -18,7 +21,8 @@ std::vector<Document> RequestQueue::AddFindRequest(std::string_view raw_query)
 
 int RequestQueue::GetNoResultRequests() const
 {
-    return count_if(requests_.begin(), requests_.end(),
+    return count_if(requests_.begin(),
+                    requests_.end(),
                     [](QueryResult query)
                     {
                         return query.query_result == 0;

@@ -11,9 +11,7 @@ template <typename IteratorRanges>
 class IteratorRange
 {
 public:
-    explicit IteratorRange(IteratorRanges begin, IteratorRanges end) : begin_(begin),
-                                                                       end_(end),
-                                                                       size_(distance(begin, end)) {}
+    explicit IteratorRange(IteratorRanges begin, IteratorRanges end) : begin_(begin), end_(end), size_(distance(begin, end)) {}
 
     IteratorRanges begin() const
     {

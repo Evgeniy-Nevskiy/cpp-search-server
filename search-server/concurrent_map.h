@@ -43,8 +43,7 @@ public:
     {
 
         auto &bucket = bucket_[uint64_t(key) % bucket_.size()];
-        return {key,
-                bucket};
+        return {key, bucket};
     }
 
     std::map<Key, Value> BuildOrdinaryMap()

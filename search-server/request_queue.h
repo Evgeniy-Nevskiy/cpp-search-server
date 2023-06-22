@@ -30,7 +30,7 @@ std::vector<Document> RequestQueue::AddFindRequest(std::string_view raw_query,
                                                    DocumentPredicate document_predicate)
 {
     std::vector<Document> temporary = search_request.FindTopDocuments(raw_query,
-                                                                      document_predicate);
+                                                                   document_predicate);
     QueryResult query;
     query.query_result = (temporary.empty() == false);
 

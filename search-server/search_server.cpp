@@ -30,61 +30,14 @@ void SearchServer::AddDocument(int document_id,
     }
 }
 
-std::vector<Document> SearchServer::FindTopDocuments(std::string_view raw_query,
-                                                     DocumentStatus status) const
-{
-    return FindTopDocuments(std::execution::seq, raw_query, status);
-}
-
-std::vector<Document> SearchServer::FindTopDocuments(const std::execution::sequenced_policy &,
-                                                     std::string_view raw_query,
-                                                     DocumentStatus status) const
-{
-    return FindTopDocuments(std::execution::seq,
-                            raw_query,
-                            [status](int document_id,
-                                     DocumentStatus document_status,
-                                     int rating)
-                            {
-                                return document_status == status;
-                            });
-}
-
-std::vector<Document> SearchServer::FindTopDocuments(const std::execution::parallel_policy &,
-                                                     std::string_view raw_query,
-                                                     DocumentStatus status) const
-{
-    return FindTopDocuments(std::execution::par,
-                            raw_query,
-                            [status](int document_id,
-                                     DocumentStatus document_status,
-                                     int rating)
-                            {
-                                return document_status == status;
-                            });
-}
-
 std::vector<Document> SearchServer::FindTopDocuments(std::string_view raw_query) const
 {
-    return FindTopDocuments(std::execution::seq,
-                            raw_query,
-                            DocumentStatus::ACTUAL);
+    return FindTopDocuments(std::execution::seq, raw_query, DocumentStatus::ACTUAL);
 }
 
-std::vector<Document> SearchServer::FindTopDocuments(const std::execution::sequenced_policy &,
-                                                     std::string_view raw_query) const
+std::vector<Document> SearchServer::FindTopDocuments(std::string_view raw_query, DocumentStatus status) const
 {
-    return FindTopDocuments(std::execution::seq,
-                            raw_query,
-                            DocumentStatus::ACTUAL);
-}
-
-std::vector<Document> SearchServer::FindTopDocuments(const std::execution::parallel_policy &,
-                                                     std::string_view raw_query) const
-{
-    return FindTopDocuments(std::execution::par,
-                            raw_query,
-                            DocumentStatus::ACTUAL);
+    return FindTopDocuments(std::execution::seq, raw_query, status);
 }
 
 int SearchServer::GetDocumentCount() const
@@ -105,24 +58,17 @@ std::vector<int>::const_iterator SearchServer::end() const
 const std::map<std::string_view, double> &SearchServer::GetWordFrequencies(int document_id) const
 {
     static const std::map<std::string_view, double> emptyes;
-    return (!ids_of_docs_to_word_freqs_.count(document_id))
-               ? emptyes
-               : ids_of_docs_to_word_freqs_.at(document_id);
+    return (!ids_of_docs_to_word_freqs_.count(document_id)) ? emptyes : ids_of_docs_to_word_freqs_.at(document_id);
 }
 
 void SearchServer::RemoveDocument(int document_id)
 {
-    RemoveDocument(std::execution::seq,
-                   document_id);
+    RemoveDocument(std::execution::seq, document_id);
 }
 
-void SearchServer::RemoveDocument(const std::execution::sequenced_policy &,
-                                  int document_id)
+void SearchServer::RemoveDocument(const std::execution::sequenced_policy &, int document_id)
 {
-    auto temporary = std::find(
-        document_ids_.begin(),
-        document_ids_.end(),
-        document_id);
+    auto temporary = std::find(document_ids_.begin(), document_ids_.end(), document_id);
 
     if (temporary == document_ids_.end())
     {
@@ -174,9 +120,7 @@ void SearchServer::RemoveDocument(const std::execution::parallel_policy &,
 std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDocument(std::string_view raw_query,
                                                                                       int document_id) const
 {
-    return MatchDocument(std::execution::seq,
-                         raw_query,
-                         document_id);
+    return MatchDocument(std::execution::seq, raw_query, document_id);
 }
 
 std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDocument(const std::execution::sequenced_policy &,
@@ -256,13 +200,10 @@ std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDoc
                             checker);
 
     std::sort(matched_words.begin(), end);
-    end = std::unique(std::execution::par,
-                      matched_words.begin(),
-                      end);
+    end = std::unique(std::execution::par, matched_words.begin(), end);
 
     matched_words.erase(end, matched_words.end());
-    return {matched_words,
-            documents_.at(document_id).status};
+    return {matched_words, documents_.at(document_id).status};
 }
 
 bool SearchServer::IsStopWord(std::string_view word) const
@@ -272,8 +213,7 @@ bool SearchServer::IsStopWord(std::string_view word) const
 
 bool SearchServer::IsValidWord(std::string_view word)
 {
-    return std::none_of(word.begin(),
-                        word.end(),
+    return std::none_of(word.begin(), word.end(),
                         [](char c)
                         {
                             return c >= '\0' && c < ' ';
@@ -304,9 +244,7 @@ int SearchServer::ComputeAverageRating(const std::vector<int> &ratings)
     {
         return 0;
     }
-    int rating_sum = std::accumulate(ratings.begin(),
-                                     ratings.end(),
-                                     0);
+    int rating_sum = std::accumulate(ratings.begin(), ratings.end(), 0);
     return rating_sum / static_cast<int>(ratings.size());
 }
 
@@ -352,12 +290,8 @@ SearchServer::Query SearchServer::ParseQuery(std::string_view &text) const
         }
     }
 
-    std::sort(std::execution::par,
-              result.minus_words.begin(),
-              result.minus_words.end());
-    std::sort(std::execution::par,
-              result.plus_words.begin(),
-              result.plus_words.end());
+    std::sort(std::execution::par, result.minus_words.begin(), result.minus_words.end());
+    std::sort(std::execution::par, result.plus_words.begin(), result.plus_words.end());
 
     result.minus_words.erase(std::unique(result.minus_words.begin(),
                                          result.minus_words.end()),
